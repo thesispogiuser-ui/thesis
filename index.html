@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Water Management Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.emailjs.com/sdk/3.2.0/email.min.js"></script>
+  <script>
+    (function(){ emailjs.init("YOUR_USER_ID"); })();
+  </script>
+</head>
+<body>
+
+<header class="topbar">
+  <div id="clock" class="clock">--:--:--</div>
+  <h1>Water Management Dashboard</h1>
+  <div class="topbar-actions">
+    <button class="btn-topbar-logout" onclick="logOut()">🔓 Logout</button>
+  </div>
+</header>
+
+
+
+<main class="main">
+    
+  <!-- Dashboard Page -->
+  <section id="dashboardPage" class="page active">
+   <div class="card building-nav-card">
+    <h3>Select Facility</h3>
+    <div class="building-tabs">
+      <button id="btn-A" class="b-btn active" onclick="switchBuilding('A')">Building A</button>
+      <button id="btn-B" class="b-btn" onclick="switchBuilding('B')">Building B</button>
+      <button id="btn-C" class="b-btn" onclick="switchBuilding('C')">Building C</button>
+    </div>
+    <p id="active-bldg-label">Currently Monitoring: <strong>Building A</strong></p>
+  </div>
+    <div id="alertBox" class="alert hidden">
+      &#9888;&#65039; Unusual water usage detected! Possible leak &mdash; check your pipes immediately.
+      <button class="btn-ai-recommend" onclick="openAIRecommendModal()">💡 Get AI Recommendations</button>
+    </div>
+
+    <div class="cards-header">
+      <span class="cards-header-label">Current Readings</span>
+      <button class="btn-daily-pdf" onclick="previewDailyPDF()" title="Preview today's report">📄 Daily Report</button>
+    </div>
+    <div class="cards">
+      <div class="card kpi-card">
+        <h3>Daily Consumption</h3>
+        <h2 id="dailyConsumption">0 KL</h2>
+      </div>
+      <div class="card kpi-card">
+        <h3>Total Consumption</h3>
+        <h2 id="totalConsumption">0 KL</h2>
+      </div>
+      <div class="card kpi-card">
+        <h3>Percentage Change</h3>
+        <h2 id="percentageChange">0%</h2>
+      </div>
+    </div>
+
+    <div class="cards charts-row">
+      <div class="card chart-card">
+        <div class="chart-card-header">
+          <h3>Consumption Trend</h3>
+          <button class="btn-leak-history" onclick="showPage('historyPage')">📊 History</button>
+        </div>
+        <canvas id="consumptionChart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <div class="chart-card-header">
+          <h3>Leak Detection Analytics</h3>
+          <button class="btn-leak-history" onclick="openLeakHistory()">📋 Leak History</button>
+        </div>
+        <canvas id="leakChart"></canvas>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Recommendations Page -->
+  <section id="recommendationsPage" class="page">
+    <div class="recommendations-card">
+      <h2>&#128161; Recommendations</h2>
+      <ul>
+        <li>Monitor water usage daily and investigate leaks promptly.</li>
+        <li>Regularly calibrate water meters to avoid unusual readings.</li>
+        <li>Schedule preventive maintenance based on consumption trends.</li>
+        <li>Optimize water usage during off-peak hours.</li>
+        <li>Generate monthly reports and review anomalies carefully.</li>
+        <li>Automate alerts for unusual consumption spikes.</li>
+        <li>Fix dripping faucets and running toilets immediately.</li>
+        <li>Install low-flow fixtures to reduce overall consumption.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- History Page -->
+  <section id="historyPage" class="page">
+    <div class="recommendations-card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="margin-bottom:0;">&#128200; Monthly History</h2>
+        <button class="btn-leak-history" onclick="showPage('dashboardPage')">← Back to Dashboard</button>
+      </div>
+      <p id="historyEmpty" style="color:#aaa;margin-top:10px;">No history yet. History is saved at end of each month or after 31 simulated days.</p>
+      <ul id="historyList"></ul>
+    </div>
+  </section>
+
+</main>
+
+<!-- Daily PDF Preview Modal -->
+<div class="pdf-modal" id="dailyPdfModal">
+  <div class="pdf-modal-content">
+    <div class="pdf-modal-header">
+      <span class="pdf-modal-title">📄 Daily Report Preview</span>
+      <div class="pdf-modal-actions">
+        <button id="dailyPdfDownloadBtn" class="btn-download" onclick="generateDailyPDF()">⬇ Download</button>
+        <button class="btn-close-modal" onclick="closeDailyPdfModal()">✕ Close</button>
+      </div>
+    </div>
+    <iframe id="dailyPdfFrame" src="" frameborder="0" style="flex:1;width:100%;height:100%;border:none;background:#fff;display:block;"></iframe>
+  </div>
+</div>
+
+<!-- PDF Preview Modal -->
+<div class="pdf-modal" id="pdfModal">
+  <div class="pdf-modal-content">
+    <div class="pdf-modal-header">
+      <span class="pdf-modal-title">&#128196; Monthly Report Preview</span>
+      <div class="pdf-modal-actions">
+        <button id="pdfModalDownloadBtn" class="btn-download">&#11015; Download</button>
+        <button class="btn-close-modal" onclick="closePdfModal()">&#10005; Close</button>
+      </div>
+    </div>
+    <iframe id="pdfFrame" src="" frameborder="0" style="flex:1;width:100%;height:100%;border:none;background:#fff;display:block;"></iframe>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div class="logout-modal-overlay" id="logoutModal">
+  <div class="logout-modal">
+    <div class="logout-modal-icon">⚠️</div>
+    <h2>Do you really want to log out?</h2>
+    <p>You will be redirected to the login page.</p>
+    <div class="logout-modal-buttons">
+      <button class="btn-logout-yes" onclick="confirmLogout()">Yes</button>
+      <button class="btn-logout-no" onclick="closeLogoutModal()">No</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leak History Modal -->
+<div class="leak-history-overlay" id="leakHistoryModal">
+  <div class="leak-history-modal">
+    <div class="ai-modal-header">
+      <span class="ai-modal-title">📋 Leak Detection History</span>
+      <button class="btn-close-modal" onclick="closeLeakHistory()">&#10005; Close</button>
+    </div>
+    <div class="leak-history-body" id="leakHistoryBody">
+      <p class="leak-history-empty" id="leakHistoryEmpty">No leaks recorded yet.</p>
+      <div id="leakHistoryList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Recommendations Modal -->
+<div class="ai-modal-overlay" id="aiRecommendModal">
+  <div class="ai-modal">
+    <div class="ai-modal-header">
+      <span class="ai-modal-title">🤖 AI Leak Recommendations</span>
+      <button class="btn-close-modal" onclick="closeAIRecommendModal()">&#10005; Close</button>
+    </div>
+    <div class="ai-modal-body" id="aiModalBody">
+      <div class="ai-loading" id="aiLoading">
+        <div class="ai-spinner"></div>
+        <p>Analyzing leak data and generating recommendations...</p>
+      </div>
+      <div class="ai-content" id="aiContent"></div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
